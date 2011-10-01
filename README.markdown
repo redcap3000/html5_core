@@ -14,13 +14,20 @@ Currently the implementation does not have rhobust support for inner elements (t
 	
 Intended Use
 ============
+
 *** Learning valid HTML 5
+
 *** Creating a wysiwyg editor.
+
 *** Storing html pages in a slightly more efficient manner using json
+
 *** Using this core to render elements returned from a couchdb using a library such as couchCurl
 	
 Plans
 =====
+
 *** Self validation, self code corrections (when available)
+
 *** Support for hierarchy (store the entire page object using DOM, or define parent child relationships/id's etc within object)
+
 *** Integration with couchCurl
