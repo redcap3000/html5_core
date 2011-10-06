@@ -100,6 +100,9 @@ class page{public $head,$body;
 	}
 
 	function json_page(){
+	// to do make json smaller by removing a lot of the key names for 't' and 'at' .. and 
+	// turning into simple numerically indexed arrays
+	// could create a dynamic json registry object as we run make and unset the old values 	
 		return json_encode($this);
 	}
 	
@@ -129,17 +132,17 @@ class tag{
 	// for space, also these are not tags so it should be less confusing than 'i' and 'a'
 	// , or '0' and '3'
 		if($inner != '')$this->in = $inner;
-		if($tag == NULL && !$this->tn)
-			$this->tn =  ltrim(get_called_class(),'_');
-		elseif($tag != NULL && !$this->tn)
+		if($tag == NULL && !$this->t)
+			$this->t =  ltrim(get_called_class(),'_');
+		elseif($tag != NULL && !$this->t)
 		// for loading from a json object
-			$this->tn = $tag;
+			$this->t = $tag;
 		// tag name probably isn't needed...
 		if(is_array($attr)) $this->at = $attr;
 	}
 	
 	function std_to_tag($obj){
-		$new_class = '_'.$obj->tn;
+		$new_class = '_'.$obj->t;
 		if(is_object($obj->in))
 		// convert std class into its class tag
 			$obj->in = $this->std_to_tag($obj->in);
@@ -155,7 +158,7 @@ class tag{
 	}
 	
 	function make($inner=NULL,$a=NULL,$tag=null){
-		if($tag == NULL) $tag = $this->tn;
+		if($tag == NULL) $tag = $this->t;
 		if(is_array($this->in))
 			foreach($this->in as $obj){
 			// json decoded objects dont retain their classnames and become std object makking this statement not possible...
@@ -167,7 +170,7 @@ class tag{
 		else{
 			if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
 			if($inner == NULL && $this->in)	$inner = $this->in;	
-			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->tn) : ($inner!=NULL? $inner :  $this->in));
+			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->t) : ($inner!=NULL? $inner :  $this->in));
 		}
 
 		if($a == NULL){
@@ -191,7 +194,7 @@ class tag{
 			// use parent child and math to determine when where to write these tags?
 		}
 		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
-//		$delim = (!in_array($this->tn,array('body','html','head','meta'))?"\t":(in_array($this->tn,array('meta','title'))?"\t":NULL));
+//		$delim = (!in_array($this->t,array('body','html','head','meta'))?"\t":(in_array($this->t,array('meta','title'))?"\t":NULL));
 		// unsetting because of memory use.. probably attempt to unset tag name too and get by referring to classname
 		unset($this->a);
 		return "\n".   $delim ."<".$tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$delim$inner$delim</$tag>" );
