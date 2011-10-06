@@ -10,6 +10,72 @@
 	
 */
 
+class ph5_ {
+// class helps users write syntax based on the tag name
+// not fully implemented for every class but is easily accomplished...
+// provide a function with the class name, exactly like the _a function and also provide
+// an entry in the order array as the name of the tag with an array with the order
+// of the tags parameters and the 'inner' value
+// make functions for popular tags, if a param is passed that doesnt exist 
+// dont make it ?	
+	// ph5::_a($inner,href,title,$other attr)
+	
+	// could make fields flexible ? auto detected all passed parameters ?
+	public static $order = array(
+	
+				'a'=> array('href','inner','title','target')
+				
+				);
+	
+	function do_arg($args,$tag){
+	// processes argument to (hopefully) determine 
+	// get the new object
+		$new_obj = '_' . $tag;
+		$new_obj = new $new_obj;
+		$arg_count = (int) count($args);
+		
+		/*
+		if($arg_count == 0 && is_array($args[0])){
+		}
+		*/
+		// TO DO....
+		if ($arg_count == count(ph5_::$order[$tag]) + 1){
+		// process final value as an assoc. array and ignore all others
+			// combine $args with $order['a'] ... 
+			$order = ph5_::$order[$tag];
+			$o_count = count($order);
+			
+			if($o_count != $arg_count){
+				$subtract = $o_count - $arg_count;			
+			}
+		
+		} elseif($arg_count > count(ph5_::$order[$tag])){
+		// 
+			return "\nToo many arguments ($arg_count) for $tag\n";
+		}elseif($arg_count > 0){
+// don't forget to validate class names etc..
+			foreach(ph5_::$order[$tag] as $loc=>$tag_name){
+				if($args[$loc])
+					if($tag_name == 'inner')
+						$inner = $args[$loc];
+					else
+						$attr[$tag_name] = $args[$loc];
+			}		
+		}
+		// or could just return the object and let perhaps set its values internally so make can do what it needs to ?
+		$new_obj->in = $inner;
+		$new_obj->at = $attr;
+		return $new_obj;
+				
+	}
+	
+	function _a(){
+		return self::do_arg(func_get_args(),'a');
+	}
+	
+}
+
+
 class page{public $head,$body;
 	function __construct($head,$body){
 		$this->head = $head;
@@ -80,11 +146,12 @@ class tag{
 			// solution only store the values that are contained in whatever is passed into a new _a or new _whatever statement
 				if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
 				$inner .= $obj->make();
-				}
+			}
+			
 		else{
 			if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
 			if($inner == NULL && $this->in)	$inner = $this->in;	
-			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->tag_name) : $this->in);
+			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->tag_name) : ($inner!=NULL? $inner :  $this->in));
 		}
 
 		if($a == NULL){

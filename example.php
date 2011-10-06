@@ -45,3 +45,11 @@ $page->make_page(array('lang'=>'en'),NULL,'My Page');
 $json = $page->json_page();
 // You can also import json  and display json... this will override page class variables 
 $page->load_json_page($json);
+
+// Working with the ph5_ class to easy shorthand...
+
+$a_tag = ph5_::_a('http://www.redcapmedia.com','My Web site');
+// We get a new a object ..
+print_r($a_tag);
+
+echo $a_tag->make();
