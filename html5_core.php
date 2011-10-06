@@ -2,8 +2,11 @@
 
 /* html5 core
 	Ronaldo Barbachano, Oct. 2011
-	A object oriented implementation of HTML 5, with json support.
-*/
+	A object oriented implementation of HTML 5, with json support. Always valid HTML ... 
+	If you are familiar with json structure, then this will feel right at home...
+	Define html pages/markup via objects and nested arrays
+	
+
 // page title as construct param
 
 // idea would be to first build all your objects that go inside your body, you may prefer to use built tags, or not .. then insert that into a body tag, and html tag
@@ -11,6 +14,54 @@
 
 // or put html on the inner by buliding tag first ...
 
+
+// some examples
+
+//echo $html->make();
+// this syntax is permissable
+
+$para = 'here is a paragraph';
+// making para into a simple tag bu defining an inner value
+$para_tag = new _p($para);
+
+// make another tag object, this time supplying second parameter, its attributes.
+$para_tag = new _p($para,array('class'=>'aClass'));
+
+// You may also pass another tag object, or even an array of tag objects,
+// Illustrated below:
+
+
+// defining an entire page by 
+
+// When 'making a new page' first param /second can be an array of objects, or a string, 
+// or a single object that defines what to put inside of the header (first param) and 
+// footer (second), third param is the title of the page (you could also manually pass 
+// a _title object as well
+
+$page = new page(
+			array(
+					new _meta(NULL,array('charset'=>'utf-8')),
+					new _meta(NULL,array('name'=>'description', 'content'=>'Description of this page.')),
+					
+				 ),
+			array(
+					new _div(
+						array(
+							new _h1('Here is a header 1'),
+							new _p($para)
+							),array('id'=>'main')
+						
+						)
+					 )
+			);
+
+// the function make_page actually echos the page back to screen, provide an array with 
+//the html's tag attributes as first param, the head tags params (if any), and the
+// page title as the third parameter - all parameters are optional
+
+$page->make_page(array('lang'=>'en'),NULL,'My Page');
+
+*/
 class html5_globals{
 	public static $a = array('accesskey'=>'','class'=>'','contenteditable'=>array('true','false','inherit'),'contextmenu'=>'','dir'=>array('ltr','rtl','auto'),'draggable'=>array('true','false','auto'),'dropzone'=>array('copy','move','link'),'hidden'=>'hidden','id'=>'','lang'=>'','spellcheck'=> array('true','false'),'style'=>'','tabindex'=>'','title'=>'','inner'=>'');
 }
@@ -30,31 +81,33 @@ class tag{
 		if($build != false){
 		// to very quickly echo a tag to the screen ...
 		// although i cant seem to get it to return a useful value with RETURN and $this->make()
-			echo $this->make();
+			//$result = ;
+			// wont return on construct... : ( attempt to store it to a more easily selectable parameter?
+			$this->{$this->tag_name} = $this->make();
 		}
 
 	}
 
-	function make($inner=NULL,$a=NULL,$tag=NULL){
+	function make($inner=NULL,$a=NULL){
 		if($tag == NULL && $this->tag_name) $tag = $this->tag_name;
-		if($inner == NULL && $this->inner) {
-			
-			$inner = $this->inner;
-		}
 		
-		if(is_object($this->inner)){
-				$inner = $this->inner->make($this->inner->inner,$this->inner->attr,$this->inner->tag_name);
-			}else{
-			$inner = $this->inner;
-			}
+		if(is_array($this->inner))
+			foreach($this->inner as $obj)
+				$inner .= $obj->make();
+
+		else{
+				if($inner == NULL && $this->inner) 
+					$inner = $this->inner;	
+				$inner =(is_object($this->inner)? $this->inner->make($this->inner->inner,$this->inner->attr,$this->inner->tag_name) : $this->inner);
+		
+		}
 
 		if($a == NULL){
-			if($this->attr){
+			if($this->attr)
 				$a = $this->attr;
-			}	
-			if($this->a) $this->a = array_merge( $this->a,html5_globals::$a);
-			else $this->a = html5_globals::$a;
-		}		
+			$this->a = ( $this->a? array_merge( $this->a,html5_globals::$a) : html5_globals::$a);
+			
+			}		
 		
 		if(is_array($a))
 			foreach($a as $key=>$value){
@@ -65,43 +118,38 @@ class tag{
 						// validate values to see if it exists within the list
 						
 				}elseif(array_key_exists($key,$this->a) && !is_array($this->a[$key])){
-					if($key != 'charset')
-							$attr .= "$key='$value' ";
+					$attr .= ($key != 'charset'?"$key='$value' ":"$key=$value ");
 						// some values wont need quotes...
-						else
-							$attr .= "$key=$value ";	
+						
 				}
+				$attr = trim($attr);
 			// self close specific tags
 			// use parent child and math to determine when where to write these tags?
-		
 		}
-			return "<$tag". ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$inner</$tag>" );
-		
+		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
+		$delim = (!in_array($this->tag_name,array('body','html','head','meta'))?"\t":(in_array($this->tag_name,array('meta','title'))?"\t":NULL));
+		return "\n".   $delim ."<".$this->tag_name. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">\n\t$delim$inner\n$delim</$tag>" );
 	}
 
 }
-/*
+
 class page{public $head,$body;
 	function __construct($head,$body){
 		$this->head = $head;
 		$this->body = $body;
-	
 	}
-	function make_page($html_attr=null,$title=null){
+	function make_page($html_attr=null,$head_attr=null,$title=null){
 	// pass in what you want to use for the html tag attributes as array in the first function,
 	// and a page title for the second (if one is not provided inside $this->head)
-	
-		
-		$this->head = new _head($this->head);
-		$this->body = new _body($this->body);
-		$result = new _html('',$html_attr);
-		
-		return
-'<!doctype html>' . $result->make();	
-	
+		if($title != null)
+			$this->head []=  new _title("$title");
+		echo "<!doctype html>";
+		// echos the head directly
+		$result = new _html(array( new _head($this->head,$head_attr) ,  new _body($this->body)) ,$html_attr);
+		echo $result->make();
 	}
 }
-*/
+
 
 class _a extends tag{public $a = array('href' => '','hreflang'=>'','title'=>'','media'=>'','rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');}
 class _abbr extends tag{}
@@ -162,6 +210,7 @@ class _header extends tag{}
 class _hgroup extends tag{}
 // self closing
 class _hr extends tag{}
+
 class _html extends tag{public $a = array('manifest'=>'', 'xmlns'=> 'http://www.w3.org/1999/xhtml');}
 class _i extends tag{}
 class _iframe extends tag{public $a = array('height'=>'','width'=>'','name'=>'','sandbox'=>array('allow-forms','allow-same-origin','allow-scripts','allow-top-navigation'),'seamless'=>'seamless','src'=>'','srcdoc'=>'');}
