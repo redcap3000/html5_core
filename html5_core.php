@@ -4,140 +4,18 @@
 	Ronaldo Barbachano, Oct. 2011
 	A object oriented implementation of HTML 5, with json support. Always valid HTML ... 
 	If you are familiar with json structure, then this will feel right at home...
-	Define html pages/markup via objects and nested arrays
+	Define html pages/markup via objects and nested arrays, use the page object
+	to help build pages... use json_page() after make has been invoked...
+	also use load_json_page() to echo out a json encoded string.
 	
-
-// page title as construct param
-
-// idea would be to first build all your objects that go inside your body, you may prefer to use built tags, or not .. then insert that into a body tag, and html tag
-// unless the page object is used ...
-
-// or put html on the inner by buliding tag first ...
-
-
-// some examples
-
-//echo $html->make();
-// this syntax is permissable
-
-$para = 'here is a paragraph';
-// making para into a simple tag bu defining an inner value
-$para_tag = new _p($para);
-
-// make another tag object, this time supplying second parameter, its attributes.
-$para_tag = new _p($para,array('class'=>'aClass'));
-
-// You may also pass another tag object, or even an array of tag objects,
-// Illustrated below:
-
-
-// defining an entire page by 
-
-// When 'making a new page' first param /second can be an array of objects, or a string, 
-// or a single object that defines what to put inside of the header (first param) and 
-// footer (second), third param is the title of the page (you could also manually pass 
-// a _title object as well
-
-$page = new page(
-			array(
-					new _meta(NULL,array('charset'=>'utf-8')),
-					new _meta(NULL,array('name'=>'description', 'content'=>'Description of this page.')),
-					
-				 ),
-			array(
-					new _div(
-						array(
-							new _h1('Here is a header 1'),
-							new _p($para)
-							),array('id'=>'main')
-						
-						)
-					 )
-			);
-
-// the function make_page actually echos the page back to screen, provide an array with 
-//the html's tag attributes as first param, the head tags params (if any), and the
-// page title as the third parameter - all parameters are optional
-
-$page->make_page(array('lang'=>'en'),NULL,'My Page');
-
 */
-class html5_globals{
-	public static $a = array('accesskey'=>'','class'=>'','contenteditable'=>array('true','false','inherit'),'contextmenu'=>'','dir'=>array('ltr','rtl','auto'),'draggable'=>array('true','false','auto'),'dropzone'=>array('copy','move','link'),'hidden'=>'hidden','id'=>'','lang'=>'','spellcheck'=> array('true','false'),'style'=>'','tabindex'=>'','title'=>'','inner'=>'');
-}
-
-class tag{
-// this class should be able to ease up a lot of the probs i having with parent/children ?
-// make all tags inherit tag? too much typing ?
-	public $tag_name,$inner,$attr;
-// if constructing from parent then we can use that class name to set the $name value ..
-
-	function __construct($inner='',$attr=NULL,$build=false){
-	// inner refers to the data between the tags, parent child refers to another object ...
-	// make option to return built tag on construction ?
-		$this->inner = $inner;
-		$this->tag_name = ltrim(get_called_class(),'_');
-		if(is_array($attr)) $this->attr = $attr;
-		if($build != false){
-		// to very quickly echo a tag to the screen ...
-		// although i cant seem to get it to return a useful value with RETURN and $this->make()
-			//$result = ;
-			// wont return on construct... : ( attempt to store it to a more easily selectable parameter?
-			$this->{$this->tag_name} = $this->make();
-		}
-
-	}
-
-	function make($inner=NULL,$a=NULL){
-		if($tag == NULL && $this->tag_name) $tag = $this->tag_name;
-		
-		if(is_array($this->inner))
-			foreach($this->inner as $obj)
-				$inner .= $obj->make();
-
-		else{
-				if($inner == NULL && $this->inner) 
-					$inner = $this->inner;	
-				$inner =(is_object($this->inner)? $this->inner->make($this->inner->inner,$this->inner->attr,$this->inner->tag_name) : $this->inner);
-		
-		}
-
-		if($a == NULL){
-			if($this->attr)
-				$a = $this->attr;
-			$this->a = ( $this->a? array_merge( $this->a,html5_globals::$a) : html5_globals::$a);
-			
-			}		
-		
-		if(is_array($a))
-			foreach($a as $key=>$value){
-
-				if((is_array($this->a[$key]) && array_key_exists($key, $this->a) && array_search($value, $this->a[$key]) )  ){
-				// add other keys here if they do not require quotes
-					$attr .= "$key='$value' ";
-						// validate values to see if it exists within the list
-						
-				}elseif(array_key_exists($key,$this->a) && !is_array($this->a[$key])){
-					$attr .= ($key != 'charset'?"$key='$value' ":"$key=$value ");
-						// some values wont need quotes...
-						
-				}
-				$attr = trim($attr);
-			// self close specific tags
-			// use parent child and math to determine when where to write these tags?
-		}
-		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
-		$delim = (!in_array($this->tag_name,array('body','html','head','meta'))?"\t":(in_array($this->tag_name,array('meta','title'))?"\t":NULL));
-		return "\n".   $delim ."<".$this->tag_name. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">\n\t$delim$inner\n$delim</$tag>" );
-	}
-
-}
 
 class page{public $head,$body;
 	function __construct($head,$body){
 		$this->head = $head;
 		$this->body = $body;
 	}
+	
 	function make_page($html_attr=null,$head_attr=null,$title=null){
 	// pass in what you want to use for the html tag attributes as array in the first function,
 	// and a page title for the second (if one is not provided inside $this->head)
@@ -148,9 +26,97 @@ class page{public $head,$body;
 		$result = new _html(array( new _head($this->head,$head_attr) ,  new _body($this->body)) ,$html_attr);
 		echo $result->make();
 	}
+	
+	function json_page(){
+		return json_encode($this);
+	}
+	
+	function load_json_page($json){
+		$json = json_decode($json);
+		$this->head = $json->head;
+		$this->body = $json->body;
+		$this->make_page();
+	}
 }
 
+class tag{
+	function __construct($inner='',$attr=NULL,$tag=NULL){
+	// inner refers to the data between the tags, parent child refers to another object ...
+	// make option to return built tag on construction ?
+	// at is for attribute, and in is for inner, was careful to pick 2 letter keys
+	// for space, also these are not tags so it should be less confusing than 'i' and 'a'
+	// , or '0' and '3'
+		if($inner != '')$this->in = $inner;
+		if($tag == NULL && !$this->tag_name)
+			$this->tag_name =  ltrim(get_called_class(),'_');
+		elseif($tag != NULL && !$this->tag_name)
+		// for loading from a json object
+			$this->tag_name = $tag;
+		// tag name probably isn't needed...
+		if(is_array($attr)) $this->at = $attr;
+	}
+	
+	function std_to_tag($obj){
+		$new_class = '_'.$obj->tag_name;
+		if(is_object($obj->in))
+		// convert std class into its class tag
+			$obj->in = $this->std_to_tag($obj->in);
+		if(is_object($obj->at)){
+		// convert object into assoc. array
+			foreach($obj->at as $x=>$y)
+				$arr[$x]=$y;
+			$obj->at = $arr;
+			unset($arr);
+		}
+		// attributes are returned as an object instead of array :(
+		return new $new_class($obj->in,$obj->at);
+	}
+	
+	function make($inner=NULL,$a=NULL,$tag=null){
+		if($tag == NULL) $tag = $this->tag_name;
+		if(is_array($this->in))
+			foreach($this->in as $obj){
+			// json decoded objects dont retain their classnames and become std object makking this statement not possible...
+			// solution only store the values that are contained in whatever is passed into a new _a or new _whatever statement
+				if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
+				$inner .= $obj->make();
+				}
+		else{
+			if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
+			if($inner == NULL && $this->in)	$inner = $this->in;	
+			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->tag_name) : $this->in);
+		}
 
+		if($a == NULL){
+			if($this->at) $a = $this->at;
+			$this->a = ( $this->a? array_merge( $this->a,html5_globals::$a) : html5_globals::$a);
+			// storing the a attributes in every tag is ineeficent ...
+			}		
+		
+		if(is_array($a))
+			foreach($a as $key=>$value){
+				if((is_array($this->a[$key]) && array_key_exists($key, $this->a) && array_search($value, $this->a[$key]) )  ){
+				// add other keys here if they do not require quotes
+					$attr .= "$key='$value' ";
+				// validate values to see if it exists within the list						
+				}elseif(array_key_exists($key,$this->a) && !is_array($this->a[$key])){
+					$attr .= ($key != 'charset'?"$key='$value' ":"$key=$value ");
+				// some values wont need quotes...						
+				}
+				$attr = trim($attr);
+			// self close specific tags
+			// use parent child and math to determine when where to write these tags?
+		}
+		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
+//		$delim = (!in_array($this->tag_name,array('body','html','head','meta'))?"\t":(in_array($this->tag_name,array('meta','title'))?"\t":NULL));
+		// unsetting because of memory use.. probably attempt to unset tag name too and get by referring to classname
+		unset($this->a);
+		return "\n".   $delim ."<".$tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$delim$inner$delim</$tag>" );
+	}
+
+}
+
+class html5_globals{public static $a = array('accesskey'=>'','class'=>'','contenteditable'=>array('true','false','inherit'),'contextmenu'=>'','dir'=>array('ltr','rtl','auto'),'draggable'=>array('true','false','auto'),'dropzone'=>array('copy','move','link'),'hidden'=>'hidden','id'=>'','lang'=>'','spellcheck'=> array('true','false'),'style'=>'','tabindex'=>'','title'=>'','inner'=>'');}
 class _a extends tag{public $a = array('href' => '','hreflang'=>'','title'=>'','media'=>'','rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');}
 class _abbr extends tag{}
 class _address extends tag{}
