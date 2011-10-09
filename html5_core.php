@@ -10,7 +10,6 @@
 	
 */
 
-
 class page{public $head,$body;
 	function __construct($head=NULL,$body=NULL,$title=NULL,$b_at=NULL,$h_at=NULL){
 	// these are totally optional. If you provide a title tag in your head you dont need it...
@@ -19,8 +18,10 @@ class page{public $head,$body;
 		if($$b_at) $this->b_at = $b_at;
 		if($h_at) $this->h_at = $h_at;
 		$args = func_get_args();
-		if(is_string($args[0]) && $args[1] == true && !is_array($args[1])){		
-			return $this->load_json_page($args[0]);
+		// count the number of args to make sure it is no more than two
+		if(is_string($args[0]) && !is_array($args[1]) && count($args) <= 2){
+		// if true then load from path		
+			return $this->load_json_page($args[0],( $args[1] == true?true:false));
 		}
 		$this->head = $head;
 		$this->body = $body;
@@ -73,7 +74,15 @@ class tag{
 	// , or '0' and '3'
 		$arg_count = func_num_args();
 	
-		if( ($this->o && $arg_count > 1 && is_string($attr))  || ($arg_count >= 3 && is_string($attr . $tag) ) ){
+		if(!$this->o){
+		// maybe combine the a and global arrays to generate a better default syntax for each tag??
+//			$this->o = array_keys(($this->a?$this->a:html5_globals::$a));
+			if($this->a)
+				$this->o = array_merge(array_keys($this->a),array_keys(html5_globals::$a));
+			else
+				$this->o = array_keys(html5_globals::$a);
+			}
+		if( ($arg_count > 1 && is_string($attr))  || ($arg_count >= 3 && is_string($attr . $tag) ) ){
 			$this->t =  ltrim(get_called_class(),'_');
 			$this->do_arg(func_get_args());
 		}else{
@@ -127,18 +136,17 @@ class tag{
 	function validate_param($param,$value=NULL,$array=NULL){
 	// checks $this->a, or any other array passed to see if values exist
 	// also checks the hthe html5 globals if not found in $array or $this->a
-		if($array ==NULL) $array = $this->a;
-		if(is_array($array) && array_key_exists($param,$array)){
-			if(is_array($array[$param]) && $value != NULL)
-				return (in_array($value,$array[$param])? true:false);
-			else return true;		
+	// switches the array to global if the class doesn't have it
+		$array = ( $array == NULL ? ($this->a? $this->a: html5_globals::$a) : $array);
+		if(is_array($array) && array_key_exists($param,$array)){		
+			return (is_array($array[$param]) && $value != NULL? (in_array($value,$array[$param])? true:false) : true);
 		}elseif(array_key_exists($param,html5_globals::$a)){
 			return $this->validate_param($param,$value,html5_globals::$a);
 		}else return false;
 	}
 	
 	function std_to_tag($obj){
-		$new_class = '_'.$obj->t;
+		$new_class = '_'.$obj->tn;
 		if(is_object($obj->in))
 		// convert std class into its class tag
 			$obj->in = $this->std_to_tag($obj->in);
@@ -197,11 +205,32 @@ class tag{
 	}
 	}
 
-class html5_globals{public static $a = array('accesskey'=>'','class'=>'','contenteditable'=>array('true','false','inherit'),'contextmenu'=>'','dir'=>array('ltr','rtl','auto'),'draggable'=>array('true','false','auto'),'dropzone'=>array('copy','move','link'),'hidden'=>'hidden','id'=>'','lang'=>'','spellcheck'=> array('true','false'),'style'=>'','tabindex'=>'','title'=>'','inner'=>'');}
+class html5_globals{
+// inner value isn't a html tag (i dont think) but used throughout the classes
+// for handling inner values of tags
+	public static $a = array(
+						'inner'=>'',
+						'class'=>'',
+						'title'=>'',
+						'id'=>'',
+						'dir'=>array('ltr','rtl','auto'),
+						'style'=>'',
+						'accesskey'=>'',
+						'contenteditable'=>array('true','false','inherit'),
+						'contextmenu'=>'',
+						'draggable'=>array('true','false','auto'),
+						'dropzone'=>array('copy','move','link'),'hidden'=>'hidden',
+						'lang'=>'',
+						'spellcheck'=> array('true','false'),
+						'tabindex'=>'');}
 class _a extends tag{
-	public $a = array('href' => '','hreflang'=>'','title'=>'','media'=>'',
+	public $a = array('href' => '',
+					  'hreflang'=>'',
+					  'title'=>'',
+					  'media'=>'',
 					  'rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),
-					  'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');
+					  'target'=>array('_blank','_parent','_self','_top','framename'),
+					  'type'=>'MIME_type');
 	// ideally $a could be used to keep track of order, but may create more problems
 	// and unneeded complexity...				  
 	public $o = array('href','inner','title','target');
@@ -210,11 +239,26 @@ class _a extends tag{
 class _abbr extends tag{}
 class _address extends tag{}
 // Some trickiness concerning quotes...
-class _area extends tag{public $a = array('alt' => '','coords'=>'','href'=>'','hreflang'=>'','media'=>'','rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),'shape'=> array('rect','rectangle','circ','circle','poly','polygon'),'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');}
+class _area extends tag{public $a = array(
+						'alt' => '',
+						'coords'=>'',
+						'href'=>'',
+						'hreflang'=>'',
+						'media'=>'',
+						'rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),
+						'shape'=> array('rect','rectangle','circ','circle','poly','polygon'),
+						'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');
+						}
 class _article extends tag{}
 class _aside extends tag{}
 // Any text inside the between <audio> and </audio> will be displayed in browsers that does not support the audio element.
-class _audio extends tag{public $a = array('autoplay' => 'autoplay','controls'=>'controls','loop'=>'loop','preload'=>array('auto','metadata','none'),'src'=>'');}
+class _audio extends tag{public $a = array(
+						'autoplay' => 'autoplay',
+						'controls'=>'controls',
+						'loop'=>'loop',
+						'preload'=>array('auto','metadata','none'),
+						'src'=>'');
+						}
 // these ones should have a shortened syntax for making b tags quickly?
 class _b extends tag{}
 class _base extends tag{}
@@ -224,9 +268,19 @@ class _body extends tag{}
 // has no end tag.. need to figure this out ?
 class _br extends tag{}
 class _button extends tag{
+// to do if no $o is provided then we can get the top level keys for the global object and use that instead!
 // allow for people to define empty keys for parameters whos values are identical
-		public $a = array('autofocus' => 'autofocus','disabled'=>'disabled','form'=>'','formaction'=>'','formenctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'),
-				'formmethod'=>array('get','post'),'formnovalidate'=>'formnovalidate','formtarget'=>array('_blank','_parent','_self','_top','framename'),'name'=>'','type'=>array('button','reset','submit'),
+		public $a = array(
+				'autofocus' => 'autofocus',
+				'disabled'=>'disabled',
+				'form'=>'',
+				'formaction'=>'',
+				'formenctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'),
+				'formmethod'=>array('get','post'),
+				'formnovalidate'=>'formnovalidate',
+				'formtarget'=>array('_blank','_parent','_self','_top','framename'),
+				'name'=>'',
+				'type'=>array('button','reset','submit'),
 				'value'=>'');
 }
 
@@ -235,7 +289,13 @@ class _caption extends tag{}
 class _cite extends tag{}
 class _col extends tag{public $a= array('span'=>'');}
 class _colgroup extends tag{public $a= array('span'=>'');}
-class _command extends tag{public $a= array('checked'=>'checked','disabled'=>'disabled','icon'=>'','radiogroup'=>'','type'=>array('button','reset','submit'));}
+class _command extends tag{public $a= array(
+								'checked'=>'checked',
+								'disabled'=>'disabled',
+								'icon'=>'',
+								'radiogroup'=>'',
+								'type'=>array('button','reset','submit'));
+								}
 
 // FF and opera ONLY
 class _datalist extends tag{}
@@ -250,12 +310,23 @@ public $o = array('inner','id','class');
 class _dl extends tag{}
 class _dt extends tag{}
 class _em extends tag{}
-class _embed extends tag{public $a = array('height'=>'','width'=>'','type'=>'MIME_type','src'=>'');}
+class _embed extends tag{public $a = array(
+			'height'=>'',
+			'width'=>'',
+			'type'=>'MIME_type',
+			'src'=>'');
+			}
 class _fieldset extends tag{public $a= array('disabled'=>'disabled','form'=>'','name'=>'');}
 class _figcaption extends tag{}
 class _figure extends tag{}
 class _footer extends tag{}
-class _form extends tag{public $a= array('accept-charset'=>'charset_list','action'=>'','autocomplete'=>array('on','off'), 'enctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'), 'method'=>array('get','post'), 'name'=>'', 'novalidate'=>'novalidate', 'target'=> array('_blank','_parent','_self','_top','framename'));}
+class _form extends tag{public $a= array('accept-charset'=>'charset_list',
+									'action'=>'','autocomplete'=>array('on','off'),
+									'enctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'),
+									'method'=>array('get','post'),
+									'name'=>'', 'novalidate'=>'novalidate',
+									'target'=> array('_blank','_parent','_self','_top','framename'));
+					}
 class _h1 extends tag{}
 class _h2 extends tag{}
 class _h3 extends tag{}
