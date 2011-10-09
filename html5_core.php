@@ -11,7 +11,7 @@
 */
 
 
-class page{public $head,$body,$title,$b_at,$h_at;
+class page{public $head,$body;
 	function __construct($head=NULL,$body=NULL,$title=NULL,$b_at=NULL,$h_at=NULL){
 	// these are totally optional. If you provide a title tag in your head you dont need it...
 	// head attributes are rare... body attributes also kinda rare.. but provide assoc arrays
@@ -44,13 +44,13 @@ class page{public $head,$body,$title,$b_at,$h_at;
 		return json_encode($this);
 	}
 	
-	public function load_json_page($json){
-		$json_b = $json;
-		$json = json_decode($json);
-		if(!is_object($json)){
+	public function load_json_page($json,$from_file=false){
+		if($from_file != false)
 			// attempt to load the json as a file path
-			$json = json_decode(file_get_contents($json_b));		
-		}
+			$json = file_get_contents($json);		
+		
+		$json = json_decode($json);
+		
 		if(is_object($json)){
 		// what about html head and title attributes ??
 			$this->head = $json->head;
