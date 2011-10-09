@@ -94,14 +94,18 @@ class tag{
 		if($arg_count > 0){
 		// don't forget to validate class names etc..
 			foreach($this->o as $loc=>$tag_name){
-				if($args[$loc] && !is_array($args[$loc]) ){
-				echo "tag name $loc :: $tag_name ::\n\n ";
+				if($args[$loc] && !is_array($args[$loc]) && !is_object($args[$loc])){
 					if($tag_name == 'inner' && $args[$loc] != ''){
 						$this->in = $args[$loc];
 						}
 					elseif( $this->validate_param($tag_name,$value) )
 						$this->at [$tag_name]= $args[$loc];
-				}else{
+				}elseif(is_object($args[$loc]) && $tag_name == 'inner'){
+					// process the object like any other tag ? store to inner ?
+					$this->in = $args[$loc];
+				}
+				
+				elseif(is_array($args[$arg_count-1])){
 					foreach($args[$arg_count-1] as $key=>$value){
 						$att_name = $this->o[$key];
 						if($this->validate_param($key,$value))
@@ -117,7 +121,7 @@ class tag{
 	// checks $this->a, or any other array passed to see if values exist
 	// also checks the hthe html5 globals if not found in $array or $this->a
 		if($array ==NULL) $array = $this->a;
-		if(array_key_exists($param,$array)){
+		if(is_array($array) && array_key_exists($param,$array)){
 			if(is_array($array[$param]) && $value != NULL)
 				return (in_array($value,$array[$param])? true:false);
 			else return true;		
