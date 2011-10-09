@@ -56,16 +56,26 @@ $page->load_json_page($json);
 // }
 
 $test = new _a('http://redcapmedia.com','Red Cap Media',NULL,'_self');
-$test = new _a('http://redcapmedia.com','Red Cap Media',array('target'=>'_self'));
+$test2 = new _a('http://redcapmedia.com','Red Cap Media',array('target'=>'_self'));
 
+echo $test->make();
+
+echo $test2->make();
 // From class _div{
 //	public $o = array('inner','id','class');
 // }
 $test = new _div('main','my_id');
-$test = new _div('inner content','main',array('class'=>'myclass'));
+$test2 = new _div('inner content','main',array('class'=>'myclass'));
+// Inner content can also be another tag object.
+$test3 = new _div(new _p('Here is a paragraphy'),'my_id');
 // the 'old school verbose method' new constructions dont take new tag objects but should be fine for 
 // inner defs.... yet..
 //$test = new _div('inside of the div',array('class'=>'myclass','id'=>'myid'));
 
 print_r($test);
+
 echo $test->make();
+
+echo $test2->make();
+
+echo $test3->make();
