@@ -46,10 +46,26 @@ $json = $page->json_page();
 // You can also import json  and display json... this will override page class variables 
 $page->load_json_page($json);
 
-// Working with the ph5_ class to easy shorthand...
 
-$a_tag = ph5_::_a('http://www.redcapmedia.com','My Web site');
-// We get a new a object ..
-print_r($a_tag);
+// Working with alternate new tag syntax (based on $o parameter)
+// Use the tag->o parameter to define the order inside tag construct methods, add an assoc.
+// array as final variable to add any other tag parameters
 
-echo $a_tag->make();
+// From class _a {
+//	public $o = array('href','inner','title','target');
+// }
+
+$test = new _a('http://redcapmedia.com','Red Cap Media',NULL,'_self');
+$test = new _a('http://redcapmedia.com','Red Cap Media',array('target'=>'_self'));
+
+// From class _div{
+//	public $o = array('inner','id','class');
+// }
+$test = new _div('main','my_id');
+$test = new _div('inner content','main',array('class'=>'myclass'));
+// the 'old school verbose method' new constructions dont take new tag objects but should be fine for 
+// inner defs.... yet..
+//$test = new _div('inside of the div',array('class'=>'myclass','id'=>'myid'));
+
+print_r($test);
+echo $test->make();

@@ -10,71 +10,6 @@
 	
 */
 
-class ph5_ {
-// class helps users write syntax based on the tag name
-// not fully implemented for every class but is easily accomplished...
-// provide a function with the class name, exactly like the _a function and also provide
-// an entry in the order array as the name of the tag with an array with the order
-// of the tags parameters and the 'inner' value
-// make functions for popular tags, if a param is passed that doesnt exist 
-// dont make it ?	
-	// ph5::_a($inner,href,title,$other attr)
-	
-	// could make fields flexible ? auto detected all passed parameters ?
-	public static $order = array(
-	
-				'a'=> array('href','inner','title','target')
-				
-				);
-	
-	function do_arg($args,$tag){
-	// processes argument to (hopefully) determine 
-	// get the new object
-		$new_obj = '_' . $tag;
-		$new_obj = new $new_obj;
-		$arg_count = (int) count($args);
-		
-		/*
-		if($arg_count == 0 && is_array($args[0])){
-		}
-		*/
-		// TO DO....
-		if ($arg_count == count(ph5_::$order[$tag]) + 1){
-		// process final value as an assoc. array and ignore all others
-			// combine $args with $order['a'] ... 
-			$order = ph5_::$order[$tag];
-			$o_count = count($order);
-			
-			if($o_count != $arg_count){
-				$subtract = $o_count - $arg_count;			
-			}
-		
-		} elseif($arg_count > count(ph5_::$order[$tag])){
-		// 
-			return "\nToo many arguments ($arg_count) for $tag\n";
-		}elseif($arg_count > 0){
-// don't forget to validate class names etc..
-			foreach(ph5_::$order[$tag] as $loc=>$tag_name){
-				if($args[$loc])
-					if($tag_name == 'inner')
-						$inner = $args[$loc];
-					else
-						$attr[$tag_name] = $args[$loc];
-			}		
-		}
-		// or could just return the object and let perhaps set its values internally so make can do what it needs to ?
-		$new_obj->in = $inner;
-		$new_obj->at = $attr;
-		return $new_obj;
-				
-	}
-	
-	function _a(){
-		return self::do_arg(func_get_args(),'a');
-	}
-	
-}
-
 
 class page{public $head,$body;
 	function __construct($head=NULL,$body=NULL){
@@ -84,7 +19,6 @@ class page{public $head,$body;
 			return $this->load_json_page($args[0]);
 		}
 		$this->head = $head;
-		
 		$this->body = $body;
 	}
 	
@@ -98,7 +32,7 @@ class page{public $head,$body;
 		$result = new _html(array( new _head($this->head,$head_attr) ,  new _body($this->body)) ,$html_attr);
 		echo $result->make();
 	}
-
+	
 	function json_page(){
 	// to do make json smaller by removing a lot of the key names for 't' and 'at' .. and 
 	// turning into simple numerically indexed arrays
@@ -111,8 +45,7 @@ class page{public $head,$body;
 		$json = json_decode($json);
 		if(!is_object($json)){
 			// attempt to load the json as a file path
-			$json = json_decode(file_get_contents($json_b));
-		
+			$json = json_decode(file_get_contents($json_b));		
 		}
 		if(is_object($json)){
 			$this->head = $json->head;
@@ -131,14 +64,66 @@ class tag{
 	// at is for attribute, and in is for inner, was careful to pick 2 letter keys
 	// for space, also these are not tags so it should be less confusing than 'i' and 'a'
 	// , or '0' and '3'
-		if($inner != '')$this->in = $inner;
-		if($tag == NULL && !$this->t)
+		$arg_count = func_num_args();
+	
+		if( ($this->o && $arg_count > 1 && is_string($attr))  || ($arg_count >= 3 && is_string($attr . $tag) ) ){
 			$this->t =  ltrim(get_called_class(),'_');
-		elseif($tag != NULL && !$this->t)
-		// for loading from a json object
-			$this->t = $tag;
-		// tag name probably isn't needed...
-		if(is_array($attr)) $this->at = $attr;
+			$this->do_arg(func_get_args());
+		}else{
+		// for normal syntax calls, also builds objects from json and properly selects
+		// tag class
+			if(is_array($attr)) $this->at = $attr;
+			if($inner != '')$this->in = $inner;
+			if($tag == NULL && !$this->t)
+				$this->t =  ltrim(get_called_class(),'_');
+			elseif($tag != NULL && !$this->t)
+			// for loading from a json object
+				$this->t = $tag;
+		}
+	}
+	
+	function do_arg($args){
+		$arg_count = count($args);
+		// this is if the developer wants to put in other parameters that are less common
+		// and not needed for most tags, accepts assoc. array
+		
+		if($arg_count > count($this->o) + 1){
+			return "\nToo many arguments ($arg_count) for $tag\n";
+		}
+		
+		if($arg_count > 0){
+		// don't forget to validate class names etc..
+			foreach($this->o as $loc=>$tag_name){
+				if($args[$loc] && !is_array($args[$loc]) ){
+				echo "tag name $loc :: $tag_name ::\n\n ";
+					if($tag_name == 'inner' && $args[$loc] != ''){
+						$this->in = $args[$loc];
+						}
+					elseif( $this->validate_param($tag_name,$value) )
+						$this->at [$tag_name]= $args[$loc];
+				}else{
+					foreach($args[$arg_count-1] as $key=>$value){
+						$att_name = $this->o[$key];
+						if($this->validate_param($key,$value))
+							$this->at [$key] = $value;
+					}
+				}
+			}		
+		}
+		return true;
+	}
+	
+	function validate_param($param,$value=NULL,$array=NULL){
+	// checks $this->a, or any other array passed to see if values exist
+	// also checks the hthe html5 globals if not found in $array or $this->a
+		if($array ==NULL) $array = $this->a;
+		if(array_key_exists($param,$array)){
+			if(is_array($array[$param]) && $value != NULL)
+				return (in_array($value,$array[$param])? true:false);
+			else return true;		
+		}elseif(array_key_exists($param,html5_globals::$a)){
+			return $this->validate_param($param,$value,html5_globals::$a);
+		}else return false;
 	}
 	
 	function std_to_tag($obj){
@@ -194,16 +179,23 @@ class tag{
 			// use parent child and math to determine when where to write these tags?
 		}
 		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
-//		$delim = (!in_array($this->t,array('body','html','head','meta'))?"\t":(in_array($this->t,array('meta','title'))?"\t":NULL));
 		// unsetting because of memory use.. probably attempt to unset tag name too and get by referring to classname
 		unset($this->a);
+		unset($this->o);
 		return "\n".   $delim ."<".$tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$delim$inner$delim</$tag>" );
 	}
-
-}
+	}
 
 class html5_globals{public static $a = array('accesskey'=>'','class'=>'','contenteditable'=>array('true','false','inherit'),'contextmenu'=>'','dir'=>array('ltr','rtl','auto'),'draggable'=>array('true','false','auto'),'dropzone'=>array('copy','move','link'),'hidden'=>'hidden','id'=>'','lang'=>'','spellcheck'=> array('true','false'),'style'=>'','tabindex'=>'','title'=>'','inner'=>'');}
-class _a extends tag{public $a = array('href' => '','hreflang'=>'','title'=>'','media'=>'','rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');}
+class _a extends tag{
+	public $a = array('href' => '','hreflang'=>'','title'=>'','media'=>'',
+					  'rel'=> array('alternate','author','bookmark','external','help','license','next','nofollow','noreferrer','prefetch','prev','search','sidebar','tag'),
+					  'target'=>array('_blank','_parent','_self','_top','framename'),'type'=>'MIME_type');
+	// ideally $a could be used to keep track of order, but may create more problems
+	// and unneeded complexity...				  
+	public $o = array('href','inner','title','target');
+	
+	}
 class _abbr extends tag{}
 class _address extends tag{}
 // Some trickiness concerning quotes...
@@ -241,7 +233,9 @@ class _del extends tag{public $a=  array ('cite'=>'','datetime'=>'');}
 // CHROME Only
 class _details extends tag{public $a= array('open'=>'open');}
 class _dfn extends tag{}
-class _div extends tag{}
+class _div extends tag{
+public $o = array('inner','id','class');
+}
 class _dl extends tag{}
 class _dt extends tag{}
 class _em extends tag{}
