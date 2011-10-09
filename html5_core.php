@@ -146,7 +146,7 @@ class tag{
 	}
 	
 	function std_to_tag($obj){
-		$new_class = '_'.$obj->tn;
+		$new_class = '_'.$obj->t;
 		if(is_object($obj->in))
 		// convert std class into its class tag
 			$obj->in = $this->std_to_tag($obj->in);
