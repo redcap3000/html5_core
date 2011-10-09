@@ -11,25 +11,29 @@
 */
 
 
-class page{public $head,$body;
-	function __construct($head=NULL,$body=NULL){
+class page{public $head,$body,$title,$b_at,$h_at;
+	function __construct($head=NULL,$body=NULL,$title=NULL,$b_at=NULL,$h_at=NULL){
+	// these are totally optional. If you provide a title tag in your head you dont need it...
+	// head attributes are rare... body attributes also kinda rare.. but provide assoc arrays
+		if($title) $this->title = $title;
+		if($$b_at) $this->b_at = $b_at;
+		if($h_at) $this->h_at = $h_at;
 		$args = func_get_args();
-		if(is_string($args[0]) && $args[1] == true && !is_array($args[1])){
-		
+		if(is_string($args[0]) && $args[1] == true && !is_array($args[1])){		
 			return $this->load_json_page($args[0]);
 		}
 		$this->head = $head;
 		$this->body = $body;
 	}
 	
-	function make_page($html_attr=null,$head_attr=null,$title=null){
+	function make_page(){
 	// pass in what you want to use for the html tag attributes as array in the first function,
 	// and a page title for the second (if one is not provided inside $this->head)
-		if($title != null)
-			$this->head []=  new _title("$title");
+		if($this->title != null)
+			$this->head []=  new _title($this->title);
 		echo "<!doctype html>";
 		// echos the head directly
-		$result = new _html(array( new _head($this->head,$head_attr) ,  new _body($this->body)) ,$html_attr);
+		$result = new _html(array( new _head($this->head,$this->h_at) ,  new _body($this->body)) ,$this->b_at);
 		echo $result->make();
 	}
 	
@@ -48,9 +52,12 @@ class page{public $head,$body;
 			$json = json_decode(file_get_contents($json_b));		
 		}
 		if(is_object($json)){
+		// what about html head and title attributes ??
 			$this->head = $json->head;
 			$this->body = $json->body;
-			$this->make_page();
+		
+			$this->make_page(($this->h_at? $this->ht_at : NULL), ($this->b_at ? $this->b_at :NULL) ,($this->title? $this->title : NULL) );
+			// unset this_>he_at and the like to make it a more normal object incase it needs to be rewritten?
 		}else{
 		 echo "\nInvalid json, or json file path\n";
 		}
