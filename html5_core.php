@@ -10,8 +10,20 @@
 	
 */
 
+
+
 class page{public $head,$body;
+	function stats(){
+		return  "<em>Memory use: " . round(memory_get_usage() / 1024) . 'k'. "</em> <p><em>Load time : "
+	. sprintf("%.4f", (((float) array_sum(explode(' ',microtime())))-$this->start_time)) . " seconds</em></p><p><em>Overhead memory : ".$this->oh_memory." k</em></p>";
+	}
+
+
 	function __construct($head=NULL,$body=NULL,$title=NULL,$b_at=NULL,$h_at=NULL){
+		$this->start_time = (float) array_sum(explode(' ',microtime()));
+		$this->oh_memory = round(memory_get_usage() / 1024);
+	
+	
 	// these are totally optional. If you provide a title tag in your head you dont need it...
 	// head attributes are rare... body attributes also kinda rare.. but provide assoc arrays
 		if($title) $this->title = $title;
@@ -33,40 +45,14 @@ class page{public $head,$body;
 		if($this->title != null)
 			$this->head []=  new _title($this->title);
 		echo "<!doctype html>";
-		// echos the head directly
 		$result = new _html(array( new _head($this->head,$this->h_at) ,  new _body($this->body)) ,$this->b_at);
 		echo $result->make();
 	}
-	
-	function json_page(){
-	// to do make json smaller by removing a lot of the key names for 't' and 'at' .. and 
-	// turning into simple numerically indexed arrays
-	// could create a dynamic json registry object as we run make and unset the old values 	
-		return json_encode($this);
-	}
-	
-	public function load_json_page($json,$from_file=false){
-		if($from_file != false)
-			// attempt to load the json as a file path
-			$json = file_get_contents($json);		
-		
-		$json = json_decode($json);
-		
-		if(is_object($json)){
-		// what about html head and title attributes ??
-			$this->head = $json->head;
-			$this->body = $json->body;
-		
-			$this->make_page(($this->h_at? $this->ht_at : NULL), ($this->b_at ? $this->b_at :NULL) ,($this->title? $this->title : NULL) );
-			// unset this_>he_at and the like to make it a more normal object incase it needs to be rewritten?
-		}else{
-		 echo "\nInvalid json, or json file path\n";
-		}
-	}
+
 }
 
 class tag{
-	function __construct($inner='',$attr=NULL,$tag=NULL){
+function __construct($inner='',$attr=NULL,$tag=NULL){
 	// inner refers to the data between the tags, parent child refers to another object ...
 	// make option to return built tag on construction ?
 	// at is for attribute, and in is for inner, was careful to pick 2 letter keys
@@ -76,7 +62,6 @@ class tag{
 	
 		if(!$this->o){
 		// maybe combine the a and global arrays to generate a better default syntax for each tag??
-//			$this->o = array_keys(($this->a?$this->a:html5_globals::$a));
 			if($this->a)
 				$this->o = array_merge(array_keys($this->a),array_keys(html5_globals::$a));
 			else
@@ -103,17 +88,15 @@ class tag{
 		// this is if the developer wants to put in other parameters that are less common
 		// and not needed for most tags, accepts assoc. array
 		
-		if($arg_count > count($this->o) + 1){
+		if($arg_count > count($this->o) + 1)
 			return "\nToo many arguments ($arg_count) for $tag\n";
-		}
 		
 		if($arg_count > 0){
 		// don't forget to validate class names etc..
 			foreach($this->o as $loc=>$tag_name){
 				if($args[$loc] && !is_array($args[$loc]) && !is_object($args[$loc])){
-					if($tag_name == 'inner' && $args[$loc] != ''){
+					if($tag_name == 'inner' && $args[$loc] != '')
 						$this->in = $args[$loc];
-						}
 					elseif( $this->validate_param($tag_name,$value) )
 						$this->at [$tag_name]= $args[$loc];
 				}elseif(is_object($args[$loc]) && $tag_name == 'inner'){
@@ -138,11 +121,11 @@ class tag{
 	// also checks the hthe html5 globals if not found in $array or $this->a
 	// switches the array to global if the class doesn't have it
 		$array = ( $array == NULL ? ($this->a? $this->a: html5_globals::$a) : $array);
-		if(is_array($array) && array_key_exists($param,$array)){		
+		if(is_array($array) && array_key_exists($param,$array))		
 			return (is_array($array[$param]) && $value != NULL? (in_array($value,$array[$param])? true:false) : true);
-		}elseif(array_key_exists($param,html5_globals::$a)){
+		elseif(array_key_exists($param,html5_globals::$a))
 			return $this->validate_param($param,$value,html5_globals::$a);
-		}else return false;
+		else return false;
 	}
 	
 	function std_to_tag($obj){
@@ -174,6 +157,7 @@ class tag{
 		else{
 			if(is_a($obj, 'stdClass')) $obj = $this->std_to_tag($obj);
 			if($inner == NULL && $this->in)	$inner = $this->in;	
+			// theres a problem with inner processing and the html attributes
 			$inner =(is_object($this->in)? $this->in->make($this->in->inner,$this->in->at,$this->in->t) : ($inner!=NULL? $inner :  $this->in));
 		}
 
@@ -202,9 +186,8 @@ class tag{
 		unset($this->a);
 		unset($this->o);
 		return "\n".   $delim ."<".$tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$delim$inner$delim</$tag>" );
+}
 	}
-	}
-
 class html5_globals{
 // inner value isn't a html tag (i dont think) but used throughout the classes
 // for handling inner values of tags
@@ -341,26 +324,77 @@ class _hr extends tag{}
 
 class _html extends tag{public $a = array('manifest'=>'', 'xmlns'=> 'http://www.w3.org/1999/xhtml');}
 class _i extends tag{}
-class _iframe extends tag{public $a = array('height'=>'','width'=>'','name'=>'','sandbox'=>array('allow-forms','allow-same-origin','allow-scripts','allow-top-navigation'),'seamless'=>'seamless','src'=>'','srcdoc'=>'');}
+class _iframe extends tag{public $a = array(
+									'height'=>'',
+									'width'=>'',
+									'name'=>'',
+									'sandbox'=>array('allow-forms','allow-same-origin','allow-scripts','allow-top-navigation'),
+									'seamless'=>'seamless',
+									'src'=>'','
+									srcdoc'=>'');
+							}
 class _img extends tag{	public $a = array('height'=>'','width'=>'','alt'=>'','ismap'=>'','usemap'=>'','src'=>'');}
 // src and alt are required ... make a 'required' flag for these options ?
 // probably the most advanced #attr
-class _input extends tag{public $a = array('accept'=>'MIME_type','autocomplete'=>array('on','off') ,'autofocus' => 'autofocus','checked'=>'checked','disabled'=>'disabled','form'=>'','formaction'=>'','formenctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'),'formmethod'=>array('get','post'),'formnovalidate'=>'formnovalidate','formtarget'=>array('_blank','_parent','_self','_top','framename'),'name'=>'',	'type'=>array('button','checkbox','color','date', 'datetime','datetime-local', 'email','file','hidden','image','month', 'number', 'password','radio','range','reset','search','submit','tel','text','time', 'url','week'),'height'=>'','list'=>'','max'=>'','maxlength'=>'','min'=>'','multiple'=>'multiple','pattern'=>'regexp','readonly'=>'readonly','required'=>'required','size'=>'','step'=>'','value'=>'','width'=>'');}
+class _input extends tag{public $a = array(
+									'accept'=>'MIME_type',
+									'autocomplete'=>array('on','off') ,
+									'autofocus' => 'autofocus',
+									'checked'=>'checked',
+									'disabled'=>'disabled',
+									'form'=>'',
+									'formaction'=>'',
+									'formenctype'=>array('application/x-www-form-urlencoded','multipart/form-data','text/plain'),
+									'formmethod'=>array('get','post'),
+									'formnovalidate'=>'formnovalidate',
+									'formtarget'=>array('_blank','_parent','_self','_top','framename'),'name'=>'',
+									'type'=>array('button','checkbox','color','date', 'datetime','datetime-local', 'email','file','hidden','image','month', 'number', 'password','radio','range','reset','search','submit','tel','text','time', 'url','week'),
+									'height'=>'',
+									'list'=>'',
+									'max'=>'',
+									'maxlength'=>'',
+									'min'=>'',
+									'multiple'=>'multiple',
+									'pattern'=>'regexp',
+									'readonly'=>'readonly',
+									'required'=>'required',
+									'size'=>'',
+									'step'=>'',
+									'value'=>'',
+									'width'=>'');
+									}
 class _ins extends tag{public $a = array('cite'=>'','datetime'=>'');}
 // not supported in IE and Safari
 // autofocus's only value is 'disabled' sounds fishy...
-class _keygen extends tag{	public $a = array('autofocus'=>'disabled','challenge'=>'challenge','disabled'=>'disabled','form'=>'','keytype'=> array('rsa','other'),'name'=>'');}
+class _keygen extends tag{	public $a = array(
+									'autofocus'=>'disabled',
+									'challenge'=>'challenge',
+									'disabled'=>'disabled',
+									'form'=>'',
+									'keytype'=> array('rsa','other'),'name'=>'');
+									}
 class _kbd extends tag{}
 class _label extends tag{public $a = array('for'=>'','form'=>'');}
 class _legend extends tag{}
 // value must be number... used only for <ol> lists
 class _li extends tag{	public $a = array ('value'=>'');}
 // to only appear in 'head' tag.. unsure how to implement ..
-class _link extends tag{public $a = array ('href'=>'','hreflang'=>'','media'=>'','rel'=> array('alternate','author','help','icon','licence','next','pingback','prefetch','prev','search','sidebar','stylesheet','tag'), 'sizes'=>array('heightxwidth','any'),'type'=>'');}
+class _link extends tag{public $a = array (
+									'href'=>'',
+									'hreflang'=>'',
+									'media'=>'',
+									'rel'=> array('alternate','author','help','icon','licence','next','pingback','prefetch','prev','search','sidebar','stylesheet','tag'),
+									'sizes'=>array('heightxwidth','any'),'type'=>'');
+									}
 class _map extends tag{public $a = array('name'=>'');}
 class _mark extends tag{}
 // to only appear in 'head' tag.. unsure how to implement ..
-class _meta extends tag{public $a = array ('charset'=>'','content'=>'', 'http-equiv'=> array('content-type','expires','refresh','set-cookie','others'), 'name'=> array('author','description','keywords','generator','others'));}
+class _meta extends tag{public $a = array (
+									'charset'=>'',
+									'content'=>'',
+									'http-equiv'=> array('content-type','expires','refresh','set-cookie','others'),
+									'name'=> array('author','description','keywords','generator','others'));
+									}
 // only supported in opera and chrome :/ come back and finish up
 class _meter extends tag{}
 class _nav extends tag{}
@@ -401,7 +435,20 @@ class _sup extends tag{}
 class _table extends tag{public $a= array('border'=>'1');}
 class _tbody extends tag{}
 class _td extends tag{public $a= array('colspan'=>'','headers'=>'','rowspan'=>'');}
-class _textarea extends tag{public $a= array('autofocus'=>'autofocus','cols','disabled'=>'disabled','dirname'=>'','form'=>'','maxlength'=>'','name'=>'','placeholder'=>'','readonly'=>'readonly','required'=>'required','rows'=>'','wrap'=>array('hard','soft'));}
+class _textarea extends tag{public $a= array(
+										'autofocus'=>'autofocus',
+										'cols'=>'',
+										'disabled'=>'disabled',
+										'dirname'=>'',
+										'form'=>'',
+										'maxlength'=>'',
+										'name'=>'',
+										'placeholder'=>'',
+										'readonly'=>'readonly',
+										'required'=>'required',
+										'rows'=>'',
+										'wrap'=>array('hard','soft'));
+										}
 class _tfoot extends tag{}
 class _th extends tag{public $a= array('colspan'=>'','headers'=>'','rowspan'=>'','scope'=> array('col','colgroup','row','rowgroup'));}
 class _thead extends tag{}
@@ -411,7 +458,16 @@ class _tr extends tag{}
 class _ul extends tag{}
 class _var extends tag{}
 class _video extends tag{
-	public $a= array('audio'=>'muted','autoplay'=>'autoplay','controls'=>'controls','height'=>'','loop'=>'loop','poster'=>'','src'=>'', 'preload'=> array('auto','metadata','none'),'width'=>'');
+	public $a= array(
+						'audio'=>'muted',
+						'autoplay'=>'autoplay',
+						'controls'=>'controls',
+						'height'=>'',
+						'loop'=>'loop',
+						'poster'=>'',
+						'src'=>'',
+						'preload'=> array('auto','metadata','none'),
+						'width'=>'');
 }
 // Not supported in opera The <wbr> tag defines where in a word it would be ok to add a line-break.
 class _wbr extends tag{}

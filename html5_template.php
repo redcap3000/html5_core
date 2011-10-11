@@ -49,7 +49,7 @@ class m_ul extends html5_template{
 // write a function in html5_template to process class tags based on classnames ?
 
 class img_li extends html5_template{
-	public static $o = array('h3','p');
+	public static $o = array('p','h3','p');
 	// $c refers to the containers in which to insert the above variables
 	public static $c = array('li');
 }
