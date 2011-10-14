@@ -1,12 +1,20 @@
 <?php
 // Class for json functions.. Probably will put the couch class here too.
 class json_core{
-	public function load_page($json,$from_file=false){
+	public static function _page($json,$from_file=false){
+	echo $json;
 		if($from_file != false)
 			// attempt to load the json as a file path
-			$json = file_get_contents($json);		
+			$json = file_get_contents($json);	
 		$json = json_decode($json);
-		return (is_object($json)? new page($json->head,$json->body,$json->title,$json->b_at,$json->h_at) :"\nInvalid json, or json file path\n");
+		
+		if(is_object($json)){
+			$result = new page($json->head,$json->body,$json->title,$json->b_at,$json->h_at);
+		}else{
+			$result = "\nInvalid json, or json file path\n";
+		}
+		
+		return $result->make_page();
 	}
 	// because json wont store the name of an object class, when reading a json object 
 	// back in use a t parameter as the objects class (or tag)
