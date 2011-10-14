@@ -8,8 +8,15 @@
 	to help build pages... 
 	
 	Other less common /less supported tags included in html5_tags.php and adds
-	around 300k of memory...	
+	around 300k of memory...Table tags are in html5_table.php	
 */
+
+
+// define wether to use single or double quotes where needed for tag attributes
+define ('AT_DOUBLE',false);
+// turn off if performance is an issue,removes quotes for attributes that dont need them
+define ('AT_QUOTE_CHECK',false);
+
 class page{public $head,$body;
 	function stats(){
 		return  "<em>Memory use: " . round(memory_get_usage() / 1024) . 'k'. "</em> <p><em>Load time : "
@@ -42,6 +49,11 @@ class page{public $head,$body;
 		echo "<!doctype html>";
 		$result = new _html(array( new _head($this->head,$this->h_at) ,  new _body($this->body)) ,$this->b_at);
 		echo $result->make();
+		// we may just want to add a variable to allow for us to keep an object
+		// after echoing out for other operations (mainly encoding json)
+		if(!class_exists('json_core'))
+			foreach($this as $key=>$value)
+				unset($this->$key);	
 	}
 }
 
@@ -54,13 +66,11 @@ function __construct($inner='',$attr=NULL,$tag=NULL){
 	// , or '0' and '3'
 		$arg_count = func_num_args();
 	
-		if(!$this->o){
+		if(!$this->o)
 		// maybe combine the a and global arrays to generate a better default syntax for each tag??
-			if($this->a)
-				$this->o = array_merge(array_keys($this->a),array_keys(html5_globals::$a));
-			else
-				$this->o = array_keys(html5_globals::$a);
-			}
+			// auto load the global class if it does not exist ?
+			$this->o = ($this->a?array_merge(array_keys($this->a),array_keys(html5_globals::$a)) :$this->o = array_keys(html5_globals::$a) );
+		
 		if( ($arg_count > 1 && is_string($attr))  || ($arg_count >= 3 && is_string($attr . $tag) ) ){
 			$this->t =  ltrim(get_called_class(),'_');
 			$this->do_arg(func_get_args());
@@ -81,10 +91,8 @@ function __construct($inner='',$attr=NULL,$tag=NULL){
 		$arg_count = count($args);
 		// this is if the developer wants to put in other parameters that are less common
 		// and not needed for most tags, accepts assoc. array
-		
 		if($arg_count > count($this->o) + 1)
 			return "\nToo many arguments ($arg_count) for $tag\n";
-		
 		if($arg_count > 0){
 		// don't forget to validate class names etc..
 			foreach($this->o as $loc=>$tag_name){
@@ -97,7 +105,6 @@ function __construct($inner='',$attr=NULL,$tag=NULL){
 					// process the object like any other tag ? store to inner ?
 					$this->in = $args[$loc];
 				}
-				
 				elseif(is_array($args[$arg_count-1])){
 					foreach($args[$arg_count-1] as $key=>$value){
 						$att_name = $this->o[$key];
@@ -147,20 +154,22 @@ function __construct($inner='',$attr=NULL,$tag=NULL){
 		
 		if(is_array($a))
 			foreach($a as $key=>$value){
-				if((is_array($this->a[$key]) && array_key_exists($key, $this->a) && in_array($value, $this->a[$key]) )  ){
-				// add other keys here if they do not require quotes
-					$attr .= "$key='$value' ";
-				// validate values to see if it exists within the list						
-				}elseif(array_key_exists($key,$this->a) && !is_array($this->a[$key])){
-					$attr .= ($key != 'charset'?"$key='$value' ":"$key=$value ");
-				// some values wont need quotes...						
+				unset($to_quote);
+				if($value && $this->validate_param($key,$value) ){
+				// quoting is tricky.. but the ATT_QUOTES definition is a step in the right
+				// direction .. 
+					if(AT_QUOTE_CHECK == true){
+						foreach(array(' ','=','>','"',"'") as $char)
+							if( strrpos($value,$char) !== false ){
+									$to_quote = true;
+									break;
+								}
+					}else
+						$to_quote = true;
+					$q = ( AT_DOUBLE  ? '"' : "'");
+					$attr .= trim($to_quote  && $key != 'charset'?" $key=$q$value$q":" $key=$value ");
 				}
-				$attr = trim($attr);
-			// self close specific tags
-			// use parent child and math to determine when where to write these tags?
 		}
-		// how do we keep track of tabs... yikes.. if tag name is not html or head or body we get a bunch ?
-		// unsetting because of memory use.. probably attempt to unset tag name too and get by referring to classname
 		if(!class_exists('json_core')){
 			foreach($this as $key=>$item){
 				unset($this->$key);
@@ -168,14 +177,12 @@ function __construct($inner='',$attr=NULL,$tag=NULL){
 		}else{
 			unset($this->o);
 			unset($this->a);
-			
 		}
-		return "\n".   $delim ."<".$tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta'))?'/>' : ">$delim$inner$delim</$tag>" );
+		// delimiter... for tabs/new lines
+		$d = (!in_array($tag,array('body','head','html')) ?"  ":" ");
+		return "\n$d<".  $tag. ( $attr?" $attr":NULL). (in_array($tag,array('br','hr','link','meta','img'))?">\n$d" : ">$inner</$tag>\n$d" );
 }
 	}
-	
-	
-
 class html5_globals{
 // inner value isn't a html tag (i dont think) but used throughout the classes
 // for handling inner values of tags
@@ -209,15 +216,12 @@ class _a extends tag{
 	}
 // these ones should have a shortened syntax for making b tags quickly?
 class _b extends tag{}
-class _blockquote extends tag{public $a = array ('cite'=>'');}
 class _body extends tag{}
 // has no end tag.. need to figure this out ?
 class _br extends tag{}
 class _div extends tag{
 public $o = array('inner','id','class');
 }
-class _dl extends tag{}
-class _dt extends tag{}
 class _em extends tag{}
 class _footer extends tag{}
 class _h1 extends tag{}
@@ -233,7 +237,10 @@ class _hgroup extends tag{}
 class _hr extends tag{}
 class _html extends tag{public $a = array('manifest'=>'', 'xmlns'=> 'http://www.w3.org/1999/xhtml');}
 class _i extends tag{}
-class _img extends tag{	public $a = array('height'=>'','width'=>'','alt'=>'','ismap'=>'','usemap'=>'','src'=>'');}
+class _img extends tag{
+	public $a = array('height'=>'','width'=>'','alt'=>'','ismap'=>'','usemap'=>'','src'=>'');
+	public $o = array('src','alt','inner');
+	}
 // src and alt are required ... make a 'required' flag for these options ?
 // value must be number... used only for <ol> lists
 class _li extends tag{	public $a = array ('value'=>'');}
@@ -246,35 +253,20 @@ class _link extends tag{public $a = array (
 									'sizes'=>array('heightxwidth','any'),'type'=>'');
 									}
 // to only appear in 'head' tag.. unsure how to implement ..
-class _meta extends tag{public $a = array (
-									'charset'=>'',
-									'content'=>'',
-									'http-equiv'=> array('content-type','expires','refresh','set-cookie','others')
-									,'name'=> array('author','description','keywords','generator','others'));
-									}
+class _meta extends tag{public $a = array ('charset'=>'','content'=>'','http-equiv'=> array('content-type','expires','refresh','set-cookie','others'),'name'=> array('author','description','keywords','generator','others'));
+						public $o = array('name','content','inner');}
 // only supported in opera and chrome :/ come back and finish up
 class _nav extends tag{}
-class _noscript extends tag{}
 class _ol extends tag{public $a = array ('reversed'=>'reversed','start'=>'','type'=>array('1','A','a','I','i'));}
 class _p extends tag{public $a = array('name'=>'','value'=>'');	}
 class _pre extends tag{}
 //	Note: If the "src" attribute is present, the <script> element must be empty.
 class _script extends tag{public $a= array('async'=>'async','defer'=>'defer','type'=>'','charset'=>'','src'=>'');	}
-class _section extends tag{}
 class _small extends tag{}
-class _source extends tag{public $a= array('src'=>'','media'=>'','type'=>'MIME_type');}
 class _span extends tag{}
 class _strong extends tag{}
 class _style extends tag{public $a= array('type'=>'text/css','media'=>'','scoped'=>'scoped');}
-class _sub extends tag{}
+class _title extends tag{};
 // not sure wether to store as string or int...
-class _table extends tag{public $a= array('border'=>'1');}
-class _tbody extends tag{}
-class _td extends tag{public $a= array('colspan'=>'','headers'=>'','rowspan'=>'');}
-class _tfoot extends tag{}
-class _th extends tag{public $a= array('colspan'=>'','headers'=>'','rowspan'=>'','scope'=> array('col','colgroup','row','rowgroup'));}
-class _thead extends tag{}
-class _title extends tag{}
-class _tr extends tag{}
 class _ul extends tag{}
-class _var extends tag{}
+?>
