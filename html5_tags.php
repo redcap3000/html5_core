@@ -30,6 +30,7 @@ class _audio extends tag{public $a = array(
 
 class _base extends tag{}
 class _bdo extends tag{}
+class _blockquote extends tag{public $a = array ('cite'=>'');}
 class _button extends tag{
 // to do if no $o is provided then we can get the top level keys for the global object and use that instead!
 // allow for people to define empty keys for parameters whos values are identical
@@ -67,6 +68,8 @@ class _del extends tag{public $a=  array ('cite'=>'','datetime'=>'');}
 // CHROME Only
 class _details extends tag{public $a= array('open'=>'open');}
 class _dfn extends tag{}
+class _dl extends tag{}
+class _dt extends tag{}
 class _embed extends tag{public $a = array(
 			'height'=>'',
 			'width'=>'',
@@ -141,6 +144,7 @@ class _legend extends tag{}
 class _map extends tag{public $a = array('name'=>'');}
 class _mark extends tag{}
 class _meter extends tag{}
+class _noscript extends tag{}
 class _object extends tag{public $a = array ('data'=>'','form'=>'','height'=>'','name'=>'','type'=>'MIME_Type', 'usemap'=>'', 'width'=>'');}
 class _optgroup extends tag{public $a = array('label'=>'','disabled'=>'disabled');}
 class _option extends tag{public $a = array('label'=>'','disabled'=>'disabled','selected'=>'selected','value'=>'');}
@@ -158,12 +162,15 @@ class _rt extends tag{}
 class _ruby extends tag{}
 class _s extends tag{}
 class _samp extends tag{}
+class _section extends tag{}
 // Only supported in chrome
 class _select extends tag{public $a = array('autofocus'=>'autofocus','disabled'=>'disabled','form'=>'','multiple'=>'','name'=>'','size'=>'');}
-
+class _source extends tag{public $a= array('src'=>'','media'=>'','type'=>'MIME_type');}
 class _summary extends tag{}
 class _sup extends tag{}
 class _sub extends tag{}
+
+
 class _textarea extends tag{public $a= array(
 										'autofocus'=>'autofocus',
 										'cols'=>'',
