@@ -1,14 +1,78 @@
 <?php
+
+
+/* Walks through a typical web page, first defining it using a number of different
+method construction arguments, creates the page with make(), then cleans it up with 
+json_clean which creates a more efficient structure for HTML data.. (than just dumping the page
+object directly)
+
+Then you can load it back in with json_to_page .. (it doesnt have to be a page) and 
+use make() again to display ..
+
+
+*/
 require('html5_core.php');
+require('json_core.php');
 
-// Super easy example. Could go a step further and remove all attribute names and
-// track them based on the position in the a parameters's lists 
-$json = '{"head":[{"tag_name":"meta","at":{"charset":"utf-8"}},{"tag_name":"meta","at":{"name":"description","content":"Web site portfolio for open source developer, designer, Ronaldo Barbachano."}},{"tag_name":"meta","at":{"name":"author","content":"Ronaldo Barbacahno"}},{"tag_name":"meta","at":{"name":"viewport","content":"width=device-width,initial-scale=1"}},{"tag_name":"link","at":{"href":"http:\/\/fonts.googleapis.com\/css?family=Geo","rel":"stylesheet","type":"text\/css"}},{"tag_name":"link","at":{"rel":"stylesheet","href":"css\/style.css"}}],"body":[{"in":[{"in":[{"in":"Ronaldo Barbachano","tag_name":"h1"},{"in":[{"in":"web","tag_name":"a","at":{"href":"web.html"}},{"in":"design","tag_name":"a","at":{"href":"design.html"}},{"in":"video","tag_name":"a","at":{"href":"video.html"}},{"in":"sound","tag_name":"a","at":{"href":"sound.html"}},{"in":"open source","tag_name":"a","at":{"href":"foss.html"}},{"in":"contact","tag_name":"a","at":{"href":"contact.html"}}],"tag_name":"nav"}],"tag_name":"header"},{"in":[{"in":"What I <em>Do<\/em>","tag_name":"h2"},{"in":"Not Much","tag_name":"h3"},{"in":"I am Ronaldo Barbachano and a LAMP developer. I specifically design database-driven web applications using PHP and MySQL. I have expertise in PHP, JavaScript, CSS, HTML, MySQL (query writing). I am the developer of framework <a href=\"http:\/\/myparse.org\">myparse<\/a> and Wordpress display engine <a href=\"http:\/\/www.ikipress.org\">ikipress.<\/a>","tag_name":"p"},{"in":"I enjoy adapting existing open source technologies to fit the specific needs of a client. My sites strive to be standards compliant, fast loading, and logically organized.","tag_name":"p"},{"in":"I also create music on the side, for fun, and have had a background creating experimental video, and in graphic design and photography","tag_name":"p"}],"tag_name":"div","at":{"id":"main","role":"main"}},{"in":{"in":"Ronaldo Barbachano 2011","tag_name":"h4"},"tag_name":"footer"}],"tag_name":"div","at":{"id":"container"}}]}';
+$meta_description = 'HTML5 Core Json Example';
 
-$page = new page($json,true);
-print_r($page);
+$content = 'Here is an example of html5 json i/o.';
 
+$page = array( new _head(array(new _meta(NULL,array('charset'=>'utf-8')),
+								new _meta (NULL,array('name'=>'description', 'content'=>$meta_description)),
+								new _meta(NULL,array('name'=>'author', 'content'=>'Ronaldo Barbachano')),
+								new _meta(NULL,array('name'=>'viewport', 'content'=>'width=device-width,initial-scale=1')),
+								new _link(NULL,array('href'=>'http://fonts.googleapis.com/css?family=Geo', 'rel'=>'stylesheet' ,'type'=>'text/css')),
+								new _link(NULL,array('rel'=>"stylesheet", 'href'=>'css/style.css')))), 
+								
+								new _body(
+							
+								
+								new _div(
+									array(
+										new _header(
+											array(
+												new _h1('Ronaldo Barbachano'),
+												new _nav(
+													array(
+														 new _a('who',array('href'=>'index.php')  ),
+														 new _a('web.php','web','Web Projects'), 
+														 new _a('open source',array('href'=>'foss.php')  )
 
-//$page = $page->load_json_page($json);
-			
-//echo			$page->json_page();
+														)
+													)
+											)
+											),
+										new _div( $content,
+												array('id'=>'main','role'=>'main')
+											),
+										new _footer(
+											new _h4("Ronaldo Barbachano 2011
+			<a href='http://www.linkedin.com/in/ronaldob' title=Linkedin>Linked In</a>
+			<a href='https://launchpad.net/%7Eronaldo-barbachano' title=Launchpad>Launchpad</a>
+			<a href='https://github.com/redcap3000' title=github>Github</a>")
+										)
+										
+										),array('id'=>'container')
+								
+								)));						
+
+// create html object with page above
+$the_page = new _html($page);
+
+// make it
+echo $the_page->make();
+
+// Clean up the page for json storage..
+$a= json_core::json_clean($the_page);
+
+// Echo's out the string
+echo json_encode($a,true);
+
+// Read in 'clean' structure to json page
+// Can also pass json as string to core..
+$c = json_core::json_to_page($a);
+
+// Make it again from json!
+echo $c->make();
+
